@@ -9,6 +9,11 @@ for (let i = 0; i < collisions.length; i += 70) {
   collisionsMap.push(collisions.slice(i, i + 70));
 }
 
+const battleZonesMap = [];
+for (let i = 0; i < battle_zones.length; i += 70) {
+  battleZonesMap.push(battle_zones.slice(i, i + 70));
+}
+
 const boundries = [];
 const offset = {
   x: -880,
@@ -19,6 +24,23 @@ collisionsMap.forEach((row, i) => {
   row.forEach((num, j) => {
     if (num === 1025) {
       boundries.push(
+        new Boundry({
+          position: {
+            x: j * Boundry.width + offset.x,
+            y: i * Boundry.height + offset.y,
+          },
+        })
+      );
+    }
+  });
+});
+
+const battleZones = [];
+
+battleZonesMap.forEach((row, i) => {
+  row.forEach((num, j) => {
+    if (num === 1025) {
+      battleZones.push(
         new Boundry({
           position: {
             x: j * Boundry.width + offset.x,
@@ -59,7 +81,7 @@ const player = new Sprite({
     up: upImage,
     left: leftImage,
     right: rightImage,
-    down: playerDownImage
+    down: playerDownImage,
   },
 });
 
@@ -94,7 +116,7 @@ const keys = {
   },
 };
 
-const movables = [background, ...boundries, foreground];
+const movables = [background, ...boundries, foreground, ...battleZones];
 
 function rectangularCollision({ rectangle1, rectangle2 }) {
   return (
@@ -111,14 +133,45 @@ function animate() {
   boundries.forEach((boundry) => {
     boundry.draw();
   });
+  battleZones.forEach((battleZone) => {
+    battleZone.draw();
+  });
   player.draw();
   foreground.draw();
+
+  if (keys.w.pressed || keys.a.pressed || keys.d.pressed || keys.s.pressed) {
+    for (let i = 0; i < battleZones.length; i++) {
+      const battleZone = battleZones[i];
+      const overlappingArea =
+        (Math.min(
+          player.position.x + player.width,
+          battleZone.position.x + battleZone.width
+        ) -
+          Math.max(player.position.x, battleZone.position.x)) *
+        (Math.min(
+          player.position.y + player.height,
+          battleZone.position.y + battleZone.height
+        ) -
+          Math.max(player.position.y, battleZone.position.y));
+      if (
+        rectangularCollision({
+          rectangle1: player,
+          rectangle2: battleZone,
+        }) &&
+        overlappingArea > (player.width * player.height) / 2 &&
+        Math.random() < .02
+      ) {
+        console.log("Battle collision!");
+        break;
+      }
+    }
+  }
 
   let moving = true;
   player.moving = false;
   if (keys.w.pressed && lastKey === "w") {
     player.moving = true;
-    player.image = player.sprites.up
+    player.image = player.sprites.up;
     for (let i = 0; i < boundries.length; i++) {
       const boundry = boundries[i];
       if (
@@ -145,7 +198,7 @@ function animate() {
   }
   if (keys.s.pressed && lastKey === "s") {
     player.moving = true;
-    player.image = player.sprites.down
+    player.image = player.sprites.down;
     for (let i = 0; i < boundries.length; i++) {
       const boundry = boundries[i];
       if (
@@ -160,7 +213,6 @@ function animate() {
           },
         })
       ) {
-        console.log("Colliding!");
         moving = false;
         break;
       }
@@ -173,7 +225,7 @@ function animate() {
   }
   if (keys.a.pressed && lastKey === "a") {
     player.moving = true;
-    player.image = player.sprites.left
+    player.image = player.sprites.left;
     for (let i = 0; i < boundries.length; i++) {
       const boundry = boundries[i];
       if (
@@ -188,7 +240,6 @@ function animate() {
           },
         })
       ) {
-        console.log("Colliding!");
         moving = false;
         break;
       }
@@ -201,7 +252,7 @@ function animate() {
   }
   if (keys.d.pressed && lastKey === "d") {
     player.moving = true;
-    player.image = player.sprites.right
+    player.image = player.sprites.right;
     for (let i = 0; i < boundries.length; i++) {
       const boundry = boundries[i];
       if (
@@ -216,7 +267,6 @@ function animate() {
           },
         })
       ) {
-        console.log("Colliding!");
         moving = false;
         break;
       }
